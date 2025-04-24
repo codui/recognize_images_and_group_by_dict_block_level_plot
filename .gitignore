@@ -1,0 +1,12 @@
+.mypy_cache
+__pycache__/
+info
+/side_rise_venv
+/demo_work
+.env
+exp.py
+research_exp.py
+some.html
+/inspections
+/images
+/*_venv
