@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 from pathlib import Path
@@ -51,23 +52,24 @@ def get_new_image_name(img_full_path: Path, word_modifier: str = "gray"):
     return new_image_name
 
 
-def recognize_text_from_image(coordinates_roi, only_horizontal=False) -> list[str]:
-    # use_angle_cls - определять угол текста
-    ocr = PaddleOCR(use_angle_cls=True, lang="en")
+def recognize_text_from_image(ocr, coordinates_roi, only_horizontal=False) -> list[str]:
     result_recognition = ocr.ocr(coordinates_roi, cls=True, det=True)
+    # print(f"result_recognition in recognize_text_from_image: {result_recognition}")
+
     recognized_text = []
-    # For now angle - not working
-    if only_horizontal:
-        for line in result_recognition:
-            for box, (text, score) in line:
-                if "angle" in box:
-                    angle = box["angle"]
-                    print(f"{angle=}")
-                recognized_text.append(text)
-    else:
-        recognized_text = [
-            text_info[0] for line in result_recognition for _, text_info in line
-        ]
+    if len(result_recognition) == 1 and result_recognition[0] is not None:
+        # For now angle - not working
+        if only_horizontal:
+            for line in result_recognition:
+                for box, (text, score) in line:
+                    if "angle" in box:
+                        angle = box["angle"]
+                        # print(f"{angle=}")
+                    recognized_text.append(text)
+        else:
+            recognized_text = [
+                text_info[0] for line in result_recognition for _, text_info in line
+            ]
     return recognized_text
 
 
@@ -116,7 +118,7 @@ def get_image_full_path(folder_images_full_path: Path, image_name: str | Path):
         # Если указан не абсолютный путь к файлу изображения
         if not os.path.isabs(image_name):
             abs_path_img = os.path.abspath(image_name)
-            print(f"{abs_path_img=}\n")
+            # print(f"{abs_path_img=}\n")
     # return abs_path_img
 
 
@@ -165,7 +167,8 @@ def get_folder_name_from_dict_block_level_plot(
     print(f"{recognized_list=}")
     all_match: bool = False
     for key, window_names in dict_block_level_plot.items():
-        print(f"{key=}, {window_names=}")
+        # print(f"{key=}, {window_names=}")
+
         for window_name in window_names:
             # recognized_word = 'D L2 226'
             for recognized_word in recognized_list:
@@ -177,13 +180,16 @@ def get_folder_name_from_dict_block_level_plot(
                 # print(f"{recognized_word_with_plot=}")
 
                 if window_name in recognized_word:
+                    # print(f"{window_name=}, {recognized_word=}")
                     print(f"{window_name=}, {recognized_word=}")
 
                     all_match = check_for_match_block_level(key, recognized_word)
                     if all_match:
                         return key
                 elif key == recognized_word_with_plot:
+                    # print(f"{key=}, {recognized_word_with_plot=}")
                     print(f"{key=}, {recognized_word_with_plot=}")
+
                     return key
 
     return all_match
@@ -192,36 +198,61 @@ def get_folder_name_from_dict_block_level_plot(
 def main() -> None:
     # WindowsPath('D:/WORK/Horand_LTD/TASKS_DOING_NOW/recognize_images/images')
     folder_images_full_path = get_folder_images("images")
-    print(f"{folder_images_full_path=}\n")
-    # WindowsPath('D:/WORK/Horand_LTD/TASKS_DOING_NOW/recognize_images/images/AJLX6735.JPG')
-    img_full_path = get_image_full_path(folder_images_full_path, Path("AHUY1123.JPG"))
-    print(f"{img_full_path=}\n")
-    # # WindowsPath('D:/WORK/Horand_LTD/TASKS_DOING_NOW/recognize_images/images/recognized_AJLX6735.JPG')
-    # new_image_name = get_new_image_name(img_full_path, "recognized")
+    print(f"folder_images_full_path: {folder_images_full_path}")
 
-    # ROI - region of interest
-    coordinates_roi = get_coordinates_region_of_interest(img_full_path)
-    recognized_list: list[str] = recognize_text_from_image(coordinates_roi, True)
+    # use_angle_cls - определять угол текста
+    ocr = PaddleOCR(use_angle_cls=True, lang="en")
+
+    # # WindowsPath('D:/WORK/Horand_LTD/TASKS_DOING_NOW/recognize_images/images/AJLX6735.JPG')
+    # img_full_path = get_image_full_path(folder_images_full_path, Path("AHUY1123.JPG"))
+    # print(f"{img_full_path=}\n")
 
     dict_block_level_plot: dict[str, tuple[str, ...]] = get_dict_block_level_plot(
         "info/src.txt"
     )
-    folder_name_to_remove_image: str | bool = (
-        get_folder_name_from_dict_block_level_plot(
-            dict_block_level_plot, recognized_list
-        )
-    )
-    # Если folder_name_to_remove_image строка - 'A_L2_Plot_11'
-    if folder_name_to_remove_image and type(folder_name_to_remove_image) is str:
-        folder_with_target_folders = "folder_by_block_level_plot"
-        # WindowsPath('D:/WORK/Horand_LTD/TASKS_DOING_NOW/recognize_images/folder_by_block_level_plot/A_L2_Plot_11')
-        abs_path_folder_block_level_plot = (
-            Path().cwd() / folder_with_target_folders / folder_name_to_remove_image
-        )
-        # Убедиться что папка abs_path_folder_block_level_plot существует
-        # и переместить в неё распознанный файл изображения img_full_path
-        if abs_path_folder_block_level_plot.exists():
-            shutil.move(img_full_path, abs_path_folder_block_level_plot)
+    folder_with_target_folders = "folder_by_block_level_plot"
+    for img_full_path in folder_images_full_path.iterdir():
+        # print(f"{img_full_path.suffix.lower()=}")
+
+        if img_full_path.suffix.lower() == ".jpg":
+            print(f"Processing image: {img_full_path}")
+
+            # # WindowsPath('D:/WORK/Horand_LTD/TASKS_DOING_NOW/recognize_images/images/recognized_AJLX6735.JPG')
+            # new_image_name = get_new_image_name(img_full_path, "recognized")
+
+            # ROI - region of interest
+            coordinates_roi = get_coordinates_region_of_interest(img_full_path)
+            recognized_list: list[str] = recognize_text_from_image(
+                ocr, coordinates_roi, True
+            )
+            print(f"recognized_list: {recognized_list}")
+
+            if len(recognized_list) > 0:
+                print(f"recognized_list: {recognized_list}")
+
+                # 'A_L2_Plot_11'
+                folder_name_to_remove_image: str | bool = (
+                    get_folder_name_from_dict_block_level_plot(
+                        dict_block_level_plot, recognized_list
+                    )
+                )
+                print(f"folder_name_to_remove_image: {folder_name_to_remove_image}")
+
+                # Если folder_name_to_remove_image строка - 'A_L2_Plot_11'
+                if folder_name_to_remove_image and type(folder_name_to_remove_image) is str:
+                    # WindowsPath('D:/WORK/Horand_LTD/TASKS_DOING_NOW/recognize_images/folder_by_block_level_plot/A_L2_Plot_11')
+                    abs_path_folder_block_level_plot = (
+                        Path().cwd()
+                        / folder_with_target_folders
+                        / folder_name_to_remove_image
+                    )
+                    # Убедиться что папка abs_path_folder_block_level_plot существует
+                    # и переместить в неё распознанный файл изображения img_full_path
+                    if abs_path_folder_block_level_plot.exists():
+                        shutil.move(img_full_path, abs_path_folder_block_level_plot)
+                        print(
+                            f"Move image: {img_full_path} to folder: {abs_path_folder_block_level_plot}"
+                        )
 
     # # Show image
     # cv2.imshow("gray", coordinates_roi)
