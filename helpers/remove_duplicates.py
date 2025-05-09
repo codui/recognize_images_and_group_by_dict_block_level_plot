@@ -42,4 +42,5 @@ def remove_duplicates_images_from_folder(path_target_folder: str | Path) -> None
                         path_obj.unlink()
 
 
-remove_duplicates_images_from_folder(path_target_folder="images")
+if __name__ == '__main__':
+    remove_duplicates_images_from_folder(path_target_folder="images_for_recognize")

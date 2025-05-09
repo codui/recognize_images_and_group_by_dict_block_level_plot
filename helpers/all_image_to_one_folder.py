@@ -1,12 +1,11 @@
-import os
 import shutil
 from pathlib import Path
 from pprint import pprint
 
 
 def remove_all_images_to_one_folder(
-    path_src_folder: str | Path,
-    path_target_folder: str | Path,
+    path_src_folder: Path,
+    path_target_folder: Path,
     format_image: str = ".jpg",
 ) -> None:
     """
@@ -14,27 +13,28 @@ def remove_all_images_to_one_folder(
     и проверяет является ли файл изображением указанного формата (по умолчанию ".jpg").
     Если файл нужного формата то переносит его в папку path_target_folder.
     Args:
-        path_src_folder (str): Relative or absolute path to the folder with folders and images inside folders.
+        path_src_folder (Path): Relative or absolute path to the folder with folders and images inside folders.
 
-        path_target_folder (str): Relative or absolute path to the target folder.
+        path_target_folder (Path): Relative or absolute path to the target folder.
                                     Where all the images should be in the end of work function.
 
         format_image (str): Format of image file. By default ".jpg".
     Returns:
         None
     """
+    path_src_folder.is_absolute()
     # Check if path_src_folder is absolute
-    if not os.path.isabs(path_src_folder):
+    if not path_src_folder.is_absolute():
         # WindowsPath('D:/WORK/Horand_LTD/TASKS_DOING_NOW/recognize_images/images_to_recognize')
-        path_src_folder = Path(path_src_folder).resolve()
+        path_src_folder = path_src_folder.resolve()
     # Check if path_target_folder is absolute
-    if not os.path.isabs(path_target_folder):
+    if not path_target_folder.is_absolute():
         # WindowsPath('D:/WORK/Horand_LTD/TASKS_DOING_NOW/recognize_images/images')
-        path_target_folder = Path(path_target_folder).resolve()
+        path_target_folder = path_target_folder.resolve()
 
     # Если path_obj это файл с расширением ".jpg" то перемещаем его в папку path_target_folder
     for path_obj in path_src_folder.iterdir():
-        #path_obj = ('D:/WORK/Horand_LTD/TASKS_DOING_NOW/recognize_images/images_to_recognize/Pictures/AEGO8215.JPG')
+        # path_obj = ('D:/WORK/Horand_LTD/TASKS_DOING_NOW/recognize_images/images_to_recognize/Pictures/AEGO8215.JPG')
         if path_obj.is_file() and path_obj.suffix.lower() == ".jpg":
             print(f"{path_obj=}")
             # target_file = ('D:/WORK/Horand_LTD/TASKS_DOING_NOW/recognize_images/images/AEGO8215.JPG')
@@ -61,6 +61,8 @@ def remove_all_images_to_one_folder(
             remove_all_images_to_one_folder(path_obj, path_target_folder)
 
 
-remove_all_images_to_one_folder(
-    path_src_folder="images_to_recognize", path_target_folder="images"
-)
+if __name__ == '__main__':
+    remove_all_images_to_one_folder(
+        path_src_folder=Path("images_in_folders"),
+        path_target_folder=Path("images_to_recognize"),
+    )
